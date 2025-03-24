@@ -1,0 +1,103 @@
+import SwiftUI
+import UserNotifications
+
+struct ContentView: View {
+    @State private var waterReminderEnabled = false
+    @State private var timerRunning = false
+    @State private var timeRemaining = 60
+    @State private var timer: Timer?
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Water & Workout Reminder")
+                .font(.largeTitle)
+                .bold()
+                .padding()
+            
+            Toggle("Enable Water Reminders", isOn: $waterReminderEnabled)
+                .padding()
+                .onChange(of: waterReminderEnabled) { newValue in
+                    if newValue {
+                        scheduleWaterReminder()
+                    } else {
+                        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+                    }
+                }
+            
+            VStack {
+                Text("Workout Timer: \(timeRemaining) sec")
+                    .font(.headline)
+                HStack {
+                    Button("Start") {
+                        startTimer()
+                    }
+                    .padding()
+                    .background(Color.green)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+                    
+                    Button("Reset") {
+                        resetTimer()
+                    }
+                    .padding()
+                    .background(Color.red)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+                }
+            }
+            .padding()
+        }
+        .onAppear {
+            requestNotificationPermission()
+        }
+    }
+    
+    func requestNotificationPermission() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
+            if let error = error {
+                print("Permission error: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    func scheduleWaterReminder() {
+        let content = UNMutableNotificationContent()
+        content.title = "Time to Drink Water!"
+        content.body = "Stay hydrated and drink some water."
+        content.sound = .default
+        
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3600, repeats: true)
+        let request = UNNotificationRequest(identifier: "waterReminder", content: content, trigger: trigger)
+        
+        UNUserNotificationCenter.current().add(request)
+    }
+    
+    func startTimer() {
+        timer?.invalidate()
+        timeRemaining = 60
+        timerRunning = true
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+            if timeRemaining > 0 {
+                timeRemaining -= 1
+            } else {
+                timer?.invalidate()
+                timerRunning = false
+            }
+        }
+    }
+    
+    func resetTimer() {
+        timer?.invalidate()
+        timeRemaining = 60
+        timerRunning = false
+    }
+}
+
+@main
+struct WaterReminderApp: App {
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+        }
+    }
+}
